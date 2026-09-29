@@ -1,0 +1,126 @@
+// Název souboru:    schema.prisma
+// Autor:            Matěj Honzek (xhonze01)
+// Popis:            Schéma, podle kterého Prisma generuje databázi a spravuje migrace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+
+//enum Gender {
+//  M
+//  F
+//  male 
+//  female
+//}
+
+model patient {
+  id        String    @id @default(uuid())
+  firstname String    //@db.VarChar(255)
+  lastname  String    //@db.VarChar(255)
+  birthday  DateTime? 
+  height    Int?
+  sex       String? 
+  examinations examination[]
+  patient_groups patient_group_membership[]
+  patient_weights patient_weights[]
+
+  @@unique([firstname, lastname], name: "unique_patient")
+}
+
+model examination {
+  id                  String         @id @unique
+  patientId           String  
+  datetime            DateTime?
+  joint_side          String?
+  test_mode           String?
+  joint               String?
+  plane               String?
+  grafity_compensation String?
+  motion_start        Int?
+  motion_end          Int?
+  speed_1             Int?
+  speed_2             Int?
+  break               Int?
+  start_hold_position Int?
+  end_hold_position   Int?
+  hold_time           Int?
+  number_of_sets      Int?
+  number_of_repetitions Int?
+  weight              Int?
+  height              Int?
+  patient patient     @relation(fields: [patientId], references: [id], onDelete: Cascade) 
+  measurements measurement[]
+  examination_groups examination_group_membership[]
+}
+
+model measurement {
+  id                            Int      @id @default(autoincrement())
+  time                          Int?
+  relative_position             Int?
+  torque                        Int?
+  speed                         Int?
+  torque_without_g_calibration  Int?
+  current_repetition            Int?
+  current_set                   Int?
+  torque_on_dynamometer         Int?
+  force_on_right_leg            Int?
+  force_on_left_leg             Int?
+  examination examination       @relation(fields: [examination_id], references: [id], onDelete: Cascade)
+  examination_id                String 
+}
+
+model examination_group_membership {
+  item_id           String
+  group_id          String
+  examination       examination   @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  examination_group examination_group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  @@id([item_id,group_id])
+}
+
+model examination_group {
+  id        String    @id @default(uuid())
+  name            String
+  examinations    examination_group_membership[]
+  @@unique([name])
+}
+
+model patient_group_membership {
+  item_id       String
+  group_id      String
+  patient       patient   @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  patient_group patient_group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  @@id([item_id,group_id])
+}
+
+model patient_group {
+  id        String    @id @default(uuid())
+  name      String
+  patients  patient_group_membership[]
+  @@unique([name])
+}
+
+model patient_weights {
+  id          Int @id @default(autoincrement())
+  weight      Int
+  date   DateTime //@db.Date
+  patient     patient @relation(fields: [patient_id], references: [id],onDelete: Cascade)
+  patient_id  String
+  @@unique([patient_id, date, weight], name: "unique_patient_weight")
+}
+
+model comparison {
+  id             Int      @id @default(autoincrement())
+  description    String?
+  title          String?
+  onlyIsokinetic Boolean
+  createdAt      DateTime @default(now())
+  comment        String?
+  paramsJson     String     
+}
+
